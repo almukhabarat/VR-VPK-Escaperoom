@@ -1,1 +1,157 @@
-<!-- TBA -->
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>VPK - VR</title>
+    <meta name="description" content="Reken theorie oefenen in VR" />
+    <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.6.0/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/@c-frame/aframe-physics-system@4.2.2/dist/aframe-physics-system.min.js"></script>
+    <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
+
+    <script src="scenario-config.js" defer></script>
+    <script src="constants.js" defer></script>
+    <script src="scenario-functions.js" defer></script>
+    <script src="game-management.js" defer></script>
+    <script src="input.js" defer></script>
+    <script src="whiteboard.js" defer></script>
+    <script src="objects.js" defer></script>
+    <script src="main.js" defer></script>
+
+    <!-- <script src="general.js"></script> -->
+
+    <!-- <style>
+      #ui-overlay {
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.7); color: white; padding: 12px 20px;
+        border-radius: 8px; font-family: monospace; font-size: 18px;
+        display: none; z-index: 999;
+      }
+      #ui-overlay input { font-size: 18px; width: 80px; margin: 0 8px; }
+      #ui-overlay button { font-size: 16px; padding: 4px 12px; cursor: pointer; }
+      #feedback { margin-top: 8px; font-weight: bold; }
+    </style> -->
+  </head>
+  <body>
+    <a-scene physics>
+      <a-assets>
+        <a-asset-item id="room-a-glb" src="assets/Kamer_A.glb"></a-asset-item>
+        <a-asset-item id="room-b-glb" src="assets/Kamer_B.glb"></a-asset-item>
+        <a-asset-item id="patient" src="assets/patient.glb"></a-asset-item>
+        <a-asset-item id="iv-pole" src="assets/IV_pole.glb"></a-asset-item>
+        <a-asset-item
+        id="medication-cup"
+        src="assets/medication_cup.glb"
+        ></a-asset-item>
+        <a-asset-item
+        id="syringe-model"
+        src="assets/syringe.glb"
+        ></a-asset-item>
+        <a-asset-item
+        id="plunger-model"
+        src="assets/plunger.glb"
+        ></a-asset-item>
+        <a-asset-item
+        id="med-bottle-model"
+        src="assets/bottle.glb"
+        ></a-asset-item>
+        
+        <img id="arrow-btn-asset" src="assets/arrow_button.png"></img>
+        <img id="ok-btn-asset" src="assets/ok_button.png"></img>
+        <img id="icon-calc" src="assets/calculate.svg"></img>
+        <img id="icon-trash" src="assets/clear.svg"></img>
+        <canvas id="drawing-canvas" width="512" height="306"></canvas>
+        <audio
+          id="ambience-sound"
+          src="assets/ambience.ogg"
+          preload="auto"
+        ></audio>
+        <audio id="cough-sfx" src="assets/coughing.ogg" preload="auto"></audio>
+        <audio
+          id="success-sfx"
+          src="assets/p_answer.ogg"
+          preload="auto"
+        ></audio>
+      </a-assets>
+
+      <a-entity id="start-menu" position="0 1.6 -1.5">
+        <a-sky></a-sky>
+
+        <a-text
+          value="Verpleegkundig Rekenen"
+          align="center"
+          position="0 0.8 0.02"
+          width="5"
+          color="#00d4ff"
+        ></a-text>
+        <a-text
+          value="Kies een onderwerp om te oefenen"
+          align="center"
+          position="0 0.6 0.02"
+          width="2.5"
+          color="#aaaaaa"
+        ></a-text>
+
+        <a-entity
+          id="btn-piet"
+          class="interactable"
+          position="0 0.1 0.02"
+          geometry="primitive: plane; width: 3; height: 0.4"
+          material="color: #1a1a1a"
+          onclick="GameManager.launchSimulation(0)"
+        >
+          <a-text
+            value="Kamer A: Piet Hendriks"
+            align="center"
+            width="3.5"
+          ></a-text>
+        </a-entity>
+
+        <a-entity id="loading-indicator" position="0 0 0.03" visible="false">
+          <a-text
+            value="Kamer laden..."
+            align="center"
+            width="4"
+            color="black"
+          ></a-text>
+        </a-entity>
+      </a-entity>
+
+      <a-entity id="main-simulation-container"></a-entity>
+
+      <a-entity
+        id="rig"
+        movement-controls="constrainToNavMesh: true; controls: checkpoint, keyboard, touch;"
+      >
+        <a-camera id="camera">
+          <a-cursor
+            color="#ff00ff"
+            fuse="true"
+            fuse-timeout="1000"
+            raycaster="objects: .interactable"
+            animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
+            animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeInCubic; dur: 500; to: 1 1 1"
+            >>
+          </a-cursor>
+        </a-camera>
+
+        <a-entity
+          id="leftHand"
+          oculus-touch-controls="hand: left"
+          input-listen
+          laser-controls="hand: left"
+          raycaster="objects: .interactable; lineColor: red; far: 10; interval:25 recursive: true"
+        >
+        </a-entity>
+        <a-entity
+          id="rightHand"
+          oculus-touch-controls="hand: right"
+          input-listen
+          laser-controls="hand: right"
+          raycaster="objects: .interactable; lineColor: blue; far: 10; interval:25 recursive: true"
+        >
+        </a-entity>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>
